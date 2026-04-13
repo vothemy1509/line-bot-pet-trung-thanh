@@ -21,21 +21,38 @@ const client = new line.Client(lineConfig);
 // ✅ PARSE JSON
 app.use(express.json());
 
+// ✅ LOG ALL INCOMING REQUESTS (debug middleware)
+app.use((req, res, next) => {
+  console.log(`📥 [${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`   Headers: content-type=${req.headers['content-type'] || 'none'}, user-agent=${req.headers['user-agent'] || 'none'}`);
+  next();
+});
+
 // ✅ TEST ENDPOINT
 app.get('/', (req, res) => {
   res.status(200).send('✅ Bot is running!');
 });
 
+// ✅ GET /webhook — handle LINE verification / manual browser test
+app.get('/webhook', (req, res) => {
+  console.log('✅ GET /webhook hit — LINE or browser verification request');
+  res.status(200).send('✅ Webhook endpoint is alive. Use POST for LINE events.');
+});
+
 // ✅ WEBHOOK ENDPOINT
 app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
   try {
+    console.log(`📨 POST /webhook received`);
+    console.log(`   Body keys: ${Object.keys(req.body || {}).join(', ') || '(empty)'}`);
+
     const events = req.body.events;
     
     if (!events || events.length === 0) {
+      console.log('ℹ️  No events in payload — returning 200 OK');
       return res.status(200).send('OK');
     }
     
-    console.log(`📨 Received ${events.length} events`);
+    console.log(`📨 Processing ${events.length} event(s)`);
     
     await Promise.all(
       events.map(event => handleEvent(event))
@@ -43,7 +60,7 @@ app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
     
     res.status(200).send('OK');
   } catch (error) {
-    console.error('❌ Webhook error:', error);
+    console.error('❌ Webhook error:', error.message || error);
     res.status(500).send('Internal Server Error');
   }
 });
