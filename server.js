@@ -12,10 +12,19 @@ const lineConfig = {
 
 const client = new line.Client(lineConfig);
 
+// ✅ TEST ENDPOINT
+app.get('/', (req, res) => {
+  res.status(200).send('Bot is running!');
+});
+
 // ✅ WEBHOOK ENDPOINT
 app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
   try {
     const events = req.body.events;
+    
+    if (!events || events.length === 0) {
+      return res.status(200).send('OK');
+    }
     
     await Promise.all(
       events.map(event => handleEvent(event))
@@ -44,7 +53,8 @@ async function handleEvent(event) {
   });
 }
 
-const PORT = process.env.PORT || 3001;
+// ✅ PORT - KHỚP VỚI RAILWAY
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
