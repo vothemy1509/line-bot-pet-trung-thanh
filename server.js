@@ -12,9 +12,37 @@ const lineConfig = {
 
 const client = new line.Client(lineConfig);
 
+// ✅ WEBHOOK ENDPOINT
 app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
-  // ... xử lý webhook từ LINE
+  try {
+    const events = req.body.events;
+    
+    await Promise.all(
+      events.map(event => handleEvent(event))
+    );
+    
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
+
+// ✅ HÀM XỬ LÝ EVENT
+async function handleEvent(event) {
+  if (event.type !== 'message') {
+    return Promise.resolve(null);
+  }
+
+  if (event.message.type !== 'text') {
+    return Promise.resolve(null);
+  }
+
+  return client.replyMessage(event.replyToken, {
+    type: 'text',
+    text: `Pet_Trung Thành nhận được: "${event.message.text}"`
+  });
+}
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
